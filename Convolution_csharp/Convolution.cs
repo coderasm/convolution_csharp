@@ -7,29 +7,34 @@ namespace Convolution_csharp
   class Convolution
   {
     //only accepting square input and square filter
-    int[,] input = new int[5, 5] { { 0, 1, 0, 2, 1 }, { 2, 2, 2, 0, 1 }, { 0, 1, 2, 1, 2 }, { 2, 1, 1, 1, 0 }, { 2, 1, 2, 1, 0 } };
-    int[,] filterOne = new int[3, 3] { { -1, 0, -1 }, { -1, -1, -1 }, { 1, 0, -1 } };
-    int[,] filterTwo = new int[3, 3] { { 0, -1, 0 }, { -1, 0, 0 }, { 1, 0, 1 } };
-    int[,] filterThree = new int[3, 3] { { -1, 0, 1 }, { -1, 1, -1 }, { 1, 0, 1 } };
-    List<int[,]> filters = new List<int[,]>();
+    int[,] inputOne = new int[5, 5] { { 0, 1, 0, 2, 1 }, { 2, 2, 2, 0, 1 }, { 0, 1, 2, 1, 2 }, { 2, 1, 1, 1, 0 }, { 2, 1, 2, 1, 0 } };
+    int[,] inputTwo = new int[5, 5] { { 0, 0, 1, 1, 0 }, { 0, 1, 0, 0, 0 }, { 2, 2, 1, 1, 2 }, { 1, 1, 2, 2, 0 }, { 1, 0, 0, 2, 1 } };
+    int[,] inputThree = new int[5, 5] { { 0, 1, 0, 2, 0 }, { 2, 1, 0, 1, 2 }, { 1, 0, 2, 2, 2 }, { 2, 0, 1, 2, 2 }, { 1, 1, 1, 0, 0 } };
+    //int[,] filterOne = new int[3, 3] { { -1, 0, -1 }, { -1, -1, -1 }, { 1, 0, -1 } };
+    //int[,] filterTwo = new int[3, 3] { { 0, -1, 0 }, { -1, 0, 0 }, { 1, 0, 1 } };
+    //int[,] filterThree = new int[3, 3] { { -1, 0, 1 }, { -1, 1, -1 }, { 1, 0, 1 } };
+    //int[,] bias = new int[3, 3] { { 1, 1, 1 }, { 1, 1, 1 }, { 1, 1, 1 } };
+    int[,] filterOne = new int[3, 3] { { 1, -1, 1 }, { -1, 0, 1 }, { 1, 1, 1 } };
+    int[,] filterTwo = new int[3, 3] { { -1, -1, 1 }, { 0, 0, 0 }, { -1, 0, 0 } };
+    int[,] filterThree = new int[3, 3] { { -1, 0, 1 }, { 1, 1, 0 }, { 1, 1, 1 } };
+    int[,] bias = new int[3, 3] { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0, } };
+    List<int[,]> filters;
+    List<int[,]> inputs;
+    List<int[,]> paddedInputs;
+    List<int[,]> convolvedMatrices = new List<int[,]>();
     int inputSize = 0;
     int filterSize = 0;
     int outputSize = 0;
     int stride = 2;
     int zeroPadding = 0;
-    int[,] paddedInput;
-    int[,] bias = new int[3, 3] { { 1, 1, 1 }, { 1, 1, 1 }, { 1, 1, 1 } };
-    //int[,] bias = new int[3, 3] { { 0, 0, 0 }, { 0, 0, 0 }, { 0, 0, 0, } };
-    List<int[,]> convolvedMatrices = new List<int[,]>();
     int[,] withBias;
 
     public Convolution()
     {
-      filters.Add(filterOne);
-      filters.Add(filterTwo);
-      filters.Add(filterThree);
-      inputSize = input.GetLength(0);
-      paddedInput = input;
+      filters = new List<int[,]> { filterOne, filterTwo, filterThree };
+      inputs = new List<int[,]> { inputOne, inputTwo, inputThree };
+      paddedInputs = new List<int[,]> { inputOne, inputTwo, inputThree };
+      inputSize = inputOne.GetLength(0);
       filterSize = filterOne.GetLength(0);
       //we are requiring output size to equal filter size
       outputSize = filterSize;
@@ -39,7 +44,7 @@ namespace Convolution_csharp
     public Convolution convolve()
     {
       setStrideAndPadding();
-      padInput();
+      padInputs();
       createConvolvedMatrices();
       //Add all convolved matrices
       var convolvedSum = addMatrices(convolvedMatrices);
@@ -72,19 +77,25 @@ namespace Convolution_csharp
       Console.WriteLine("stride: " + stride + "\nzeroPadding: " + zeroPadding);
     }
 
-    void padInput()
+    void padInputs()
     {
-      if(zeroPadding > 0)
+      if (zeroPadding > 0)
       {
         var paddedDim = inputSize + 2 * zeroPadding;
-        paddedInput = new int[paddedDim, paddedDim];
-        //copy in original input
-        for (int i = 0; i < inputSize * inputSize; i++)
+        for (int p = 0; p < inputs.Count; p++)
         {
-          var row = zeroPadding + i / inputSize;
-          var column = zeroPadding + i % inputSize;
-          paddedInput[row, column] = input[i / inputSize, i % inputSize];
-        }
+          var input = inputs[p];
+          var paddedInput = new int[paddedDim, paddedDim];
+          //copy in original input
+          for (int i = 0; i < inputSize; i++)
+          {
+            for (int t = 0; t < inputSize; t++)
+            {
+              paddedInput[zeroPadding + i, zeroPadding + t] = input[i, t];
+            }
+          }
+          paddedInputs[p] = paddedInput;
+        };
       }
     }
 
@@ -93,14 +104,16 @@ namespace Convolution_csharp
       //Perform the convolutions
       //loop over filters
       convolvedMatrices = new List<int[,]>();
-      foreach (var filter in filters)
+      for (int p = 0; p < filters.Count; p++)
       {
+        var filter = filters[p];
+        var paddedInput = paddedInputs[p];
         var convolvedMatrix = new int[outputSize, outputSize];
         for (int t = 0; t < outputSize; t++)
         {
           for (int i = 0; i < outputSize; i++)
           {
-            var extractedMatrix = extractMatrix(t * stride, i * stride);
+            var extractedMatrix = extractMatrix(t * stride, i * stride, paddedInput);
             var dotProduct = applyFilter(filter, extractedMatrix);
             convolvedMatrix[t, i] = dotProduct;
           }
@@ -109,7 +122,7 @@ namespace Convolution_csharp
       }
     }
 
-    int[,] extractMatrix(int startRow, int startColumn)
+    int[,] extractMatrix(int startRow, int startColumn, int[,] paddedInput)
     {
       var extractedMatrix = new int[filterSize, filterSize];
       for (int t = 0; t < filterSize; t++)

@@ -114,8 +114,8 @@ namespace Convolution_csharp
           for (int i = 0; i < outputSize; i++)
           {
             var extractedMatrix = extractMatrix(t * stride, i * stride, paddedInput);
-            var dotProduct = applyFilter(filter, extractedMatrix);
-            convolvedMatrix[t, i] = dotProduct;
+            var modifiedDot = applyFilter(filter, extractedMatrix);
+            convolvedMatrix[t, i] = modifiedDot;
           }
         }
         convolvedMatrices.Add(convolvedMatrix);
